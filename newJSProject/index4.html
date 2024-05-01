@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Conquer The Temple</title>
+      
+
+      <style>
+      * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+      }
+           #canvas1 {
+           border: 1px solid rgb(22, 22, 22);
+           position: absolute;
+           top: 50%; 
+           left: 50%;
+           transform: translate(-50%, -50%);
+           background: rgb(129, 188, 219);
+            max-width: 100%;
+            max-height: 100%;
+           }
+
+           .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            display: none; /* Başlangıçta gizli */
+            }
+
+            .game-over-message {
+            font-size: 24px;
+            margin-bottom: 20px;
+            }
+            .game-winner {
+            font-size: 24px;
+            margin-bottom: 20px;
+            }
+
+            #restartButton {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            }
+
+            #restartButton:hover {
+            background-color: #45a049;
+            }
+
+            /* Giriş ekranı stilleri */
+            .start-screen {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                text-align: center;
+                display: block; /* Başlangıçta görünür */
+            }
+
+            #startButton {
+                padding: 10px 20px;
+                font-size: 18px;
+                background-color: #007bff;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                transition: background-color 0.3s;
+            }
+
+            #startButton:hover {
+                background-color: #0056b3;
+            }
+
+            
+      </style>
+</head>
+<body>
+    <div class="start-screen">
+        <h1>Welcome to Conquer The Temple</h1>
+        <button id="startButton">Start Game</button>
+  </div>
+
+  <canvas id="canvas1" style="display: none;"></canvas>
+  
+    
+  <div id="gameOver" class="game-over">
+        <div class="game-over-message">Game Over</div>
+        <button id="restartButton">Restart Game</button>
+</div>
+
+<div id="winGame" class="game-over" style="display: none;">
+    <div class="game-winner">You won!</div>
+    <button id="winRestartButton">Restart Game</button>
+    
+</div>
+      <script >
+            const canvas = document.getElementById("canvas1");
+            const ctx = canvas.getContext("2d");
+
+            canvas.width = 1200;
+            canvas.height = 600;
+            
+            const startScreen = document.querySelector(".start-screen");
+            // Oyun bitti mesajının gösterildiği div
+            const gameOverDiv = document.getElementById("gameOver");
+            const winGameDiv = document.getElementById("winGame");
+            
+            const winRestartButton = document.getElementById("winRestartButton");
+
+            const restartButton = document.getElementById("restartButton");
+            const startButton = document.getElementById("startButton");
+            
+
+            // Giriş ekranını gizle, oyun alanını göster
+            startButton.addEventListener("click", startGame);
+
+            function startGame() {
+                startScreen.style.display = "none";
+                canvas.style.display = "block";
+                animate();
+            }
+
+            // Oyun başlamadan önce giriş ekranını göster
+            function showStartScreen() {
+                startScreen.style.display = "block";
+                canvas.style.display = "none";
+            }
+
+const gravity = 1.1;
+const startingPosition = { x: 0, y: 520 };
+
+class Player {
+    constructor({x, y, width, height, image, bulletController}) {
+        this.position = {
+            x,
+            y,
+            width,
+            height
+        }
+        this.velocity = {
+            x: 0,
+            y: 0
+        }
+        this.bulletController = bulletController;
+        this.maxSpeed = 5;
+
+        this.image = image;
+
+        document.addEventListener("keydown", this.keydown);
+        document.addEventListener("keyup", this.keyup);
+    }
+
+    resetPosition() {
+        this.position.x = startingPosition.x;
+        this.position.y = startingPosition.y;
+    }
+
+    keydown = event => {
+        switch (event.key) {
+            case "a":
+                this.velocity.x = -this.maxSpeed;
+                keys.left.pressed = true;
+                break;
+
+            case "w":
+                this.velocity.y -= 15;
+                break;
+
+            case "d":
+                this.velocity.x = this.maxSpeed;
+                keys.right.pressed = true;
+                break;
+
+            case "s":
+                // down
+                break;
+            
+            case " ":
+                this.bulletController.shoot(this.position.x + this.position.width, this.position.y + this.position.height/2, 10);
+                break;
+        }
+    };
+
+    keyup = (event) => {
+        switch (event.key) {
+            case "a":
+                if (this.velocity.x < 0)
+                    this.velocity.x = 0;
+                keys.left.pressed = false;
+                break;
+
+            case "w":
+                this.velocity.y = 0;
+                break;
+
+            case "d":
+                if (this.velocity.x > 0)
+                    this.velocity.x = 0;
+                keys.right.pressed = false;
+                break;
+
+            case "s":
+                // down
+                break;
+
+            case " ":
+                // Bu durumda yapılacak bir şey yok
+                break;
+        }
+    };
+    checkCollisionWithPlatform(platform) {
+        if (
+            this.position.x < platform.position.x + platform.position.width &&
+            this.position.x + this.position.width > platform.position.x &&
+            this.position.y < platform.position.y + platform.position.height &&
+            this.position.y + this.position.height > platform.position.y
+        ) {
+            return true; // Platforma değiyor
+        }
+        return false; // Platforma değmiyor
+    }
+    
+    
+
+    draw() {
+        ctx.drawImage(this.image, this.position.x, this.position.y, this.position.width, this.position.height);
+    }
+
+    update() {
+        this.draw();
+        this.position.x += this.velocity.x;
+        this.position.y += this.velocity.y;
+        if (this.position.y + this.position.height < canvas.height) {
+            this.velocity.y += gravity;
+        } else {
+            this.velocity.y = 0;
+            this.position.y = canvas.height - this.position.height;
+        }
+
+        if (this.velocity.x > this.maxSpeed) {
+            this.velocity.x = this.maxSpeed;
+        } else if (this.velocity.x < -this.maxSpeed) {
+            this.velocity.x = -this.maxSpeed;
+        }
+
+        if (this.position.x < 0) {
+            this.position.x = 0;
+        }
+        if (this.position.x + this.position.width > canvas.width ) {
+            this.position.x = canvas.width - this.position.width;
+        }
+        if (this.position.y < 0) {
+            this.position.y = 0;
+        }
+        if (this.position.y + this.position.height > canvas.height) {
+            this.position.y = canvas.height - this.position.height;
+            this.velocity.y = 0;
+        }
+
+        // Düşmanlarla çarpışma kontrolü
+        for (let i = 0; i < enemies.length; i++) {
+            const enemy = enemies[i];
+            if (
+                this.position.x < enemy.position.x + enemy.position.width &&
+                this.position.x + this.position.width > enemy.position.x &&
+                this.position.y < enemy.position.y + enemy.position.height &&
+                this.position.y + this.position.height > enemy.position.y
+            ) {
+                // Oyuncu öldü
+               
+                gameOverDiv.style.display = "block"; // Oyun bitti mesajını göster
+                cancelAnimationFrame(animationId); // Oyun döngüsünü durdur
+                this.resetPosition(); // Oyuncuyu başlangıç noktasına geri döndür
+            }
+        }
+
+        
+    }
+}
+
+    
+class BulletController{
+    bullets = [];
+
+    constructor(canvas, maxBulletAtThatTime, bulletImage){
+        this.canvas = canvas;
+        this.maxBulletAtThatTime = maxBulletAtThatTime;
+        this.bulletImage = bulletImage;
+    }
+
+    shoot(x, y, velocity) {
+        if (this.bullets.length < this.maxBulletAtThatTime) {
+            const bullet = new Bullet(this.canvas, x, y, velocity, this.bulletImage);
+            this.bullets.push(bullet);
+        }
+    }
+
+    draw(){
+        this.bullets = this.bullets.filter(bullet => bullet.x + bullet.width > 0 && bullet.x <= canvas.width);
+        this.bullets.forEach(bullet => {
+            bullet.draw();
+            bullet.update();
+        });
+    }
+}
+
+class Bullet{
+    constructor(canvas, x, y, velocity, bulletImage){
+        this.canvas = canvas;
+        this.x = x;
+        this.y = y;
+        this.velocity = velocity;
+        this.bulletImage = bulletImage;
+
+        this.width = 20;
+        this.height = 15;
+    }
+
+    draw(){
+        ctx.drawImage(this.bulletImage, this.x, this.y, this.width, this.height);
+    }
+
+    update(){
+        this.x += this.velocity;
+    }
+}
+
+class Enemy {
+    constructor({x, y, width, height, image, platformIndex}) {
+        this.position = {
+            x,
+            y,
+            width,
+            height
+        }
+        this.velocity = {
+            x: 0,
+            y: 0
+        }
+        this.image = image;
+        this.platformIndex = platformIndex;
+
+        this.isSymmetric = false; // Symmetric bayrağı, simetrik olup olmadığını belirtir
+        if (this.platformIndex === 0 || this.platformIndex === 2 || this.platformIndex === 4) {
+            this.isSymmetric = true; // 1., 3. ve 5. düşman simetrik
+        }
+    }
+
+    draw() {
+        if (this.isSymmetric) {
+            ctx.save();
+            ctx.scale(-1, 1); // Yatay simetri için canvas'ı ters çevir
+            ctx.drawImage(this.image, -this.position.x - this.position.width, this.position.y, this.position.width, this.position.height);
+            ctx.restore();
+        } else {
+            ctx.drawImage(this.image, this.position.x, this.position.y, this.position.width, this.position.height);
+        }
+    }
+
+    update() {
+        this.draw();
+        const platform = platforms[this.platformIndex];
+        const leftBoundary = platform.position.x;
+        const rightBoundary = (platform.position.x ) + platform.position.width - 200;
+
+        this.position.x += this.velocity.x;
+
+        if (this.position.x < leftBoundary || this.position.x > rightBoundary) {
+            this.velocity.x *= -1;
+        }
+    }
+}
+
+class Platform {
+    constructor({x, y, width, height, image}) {
+        this.position = {
+            x,
+            y,
+            width,
+            height
+        }
+        this.image = image;
+    }
+
+    draw() {
+        ctx.drawImage(this.image, this.position.x, this.position.y, this.position.width, this.position.height);
+    }
+}
+
+const image = new Image();
+const image2 = new Image();
+const image3 = new Image();
+const image4 = new Image();
+const image5 = new Image();
+const image6 = new Image();
+const image7 = new Image();
+const image8 = new Image();
+const image9 = new Image();
+const image10 = new Image();
+const image11 = new Image();
+const image12 = new Image();
+const image13 = new Image();
+const image14 = new Image();
+
+
+image.src = 'image/Sprite-0002-Photoroom.png'
+image2.src = 'image/Sprite-00022.png'
+image3.src = 'image/Sprite-0002.png'
+image4.src = 'image/Sprite-0002-Photoroom.png-Photoroom.png'
+image5.src = 'image/Sprite-00055.png'
+image6.src = 'image/pixil-frame-0 (1).png'
+image7.src = 'image/tile001-Photoroom.png-Photoroom.png'
+image8.src = 'image/tile004.png'
+image9.src = 'image/tile002.png'
+image10.src = 'image/Sprite-ff2.png'
+image11.src = 'image/pixil.png'
+image12.src ='image/master (1).png'
+image13.src ='image/Sprite-cube.png'
+image14.src = 'image/4 Conjoined Spikes.png'
+
+const platforms2 = [new Platform({x: 284 , y: 254, width: 148, height: 86, image: image9}), 
+new Platform({x: 568 , y: 520, width: 100, height: 30, image: image10}), 
+new Platform({x: 896, y: 450, width: 148, height: 100, image: image5})
+];
+
+const platforms = [
+    new Platform({x: 209 , y: 338, width: 302, height: 68, image: image}), 
+    new Platform({x: 176 , y: 406, width: 368, height: 144, image: image4}),
+    new Platform({x: 226.5 , y: 476, width: 267.8, height: 10, image: image7}),
+    new Platform({x: 0 , y: 550, width: 178, height: 120, image: image2}),
+    new Platform({x: 177 , y: 550, width: 178, height: 120, image: image2}),
+    new Platform({x: 353 , y: 550, width: 178, height: 120, image: image2}),
+    new Platform({x: 530 , y: 550, width: 178, height: 120, image: image2}),
+    new Platform({x: 708 , y: 550, width: 178, height: 120, image: image2}),
+    new Platform({x: 886, y: 550, width: 178, height: 120, image: image2}),
+    
+    new Platform({x: 0, y: 0, width: 176, height: 76, image: image8}),
+    new Platform({x: 175, y: 0, width: 176, height: 76, image: image8}),
+    new Platform({x: 351, y: 0, width: 176, height: 76, image: image8}),
+    new Platform({x: 527, y: 0, width: 176, height: 76, image: image8}),
+    new Platform({x: 702, y: 0, width: 176, height: 76, image: image8}),
+    new Platform({x: 878, y: 0, width: 176, height: 76, image: image8}),
+    new Platform({x: 1053, y: 0, width: 176, height: 76, image: image8}),
+    new Platform({x: 1063, y: 150, width: 178, height: 120, image: image2}),
+    new Platform({x: 580, y: 250, width: 47, height: 47, image: image13}),
+    new Platform({x: 750, y: 200, width: 47, height: 47, image: image13}),
+    new Platform({x: 925, y: 175, width: 47, height: 47, image: image13}),
+    
+];
+
+const enemies = [
+    new Enemy({x: 430, y: 308 , width: 30, height: 30, image: image11, platformIndex: 0}), 
+    new Enemy({x: 320, y: 376 , width: 30, height: 30, image: image11, platformIndex: 1}),
+    new Enemy({x: 420, y: 446 , width: 30, height: 30, image: image11, platformIndex: 2}),
+    new Enemy({x: 130, y: 520 , width: 30, height: 30, image: image11, platformIndex: 3}),
+    new Enemy({x: 1150, y: 120 , width: 30, height: 30, image: image12, platformIndex: 4}),
+    new Enemy({x: 750, y: 520, width: 30, height: 30, image: image11, platformIndex: 5})
+
+];
+
+
+const platforms3 = [new Platform({x: 1063, y: 500, width: 178, height: 120, image: image2}),
+new Platform({x: 1063, y: 450, width: 178, height: 120, image: image2}),
+new Platform({x: 1063, y: 350, width: 178, height: 120, image: image2}),
+new Platform({x: 1063, y: 250, width: 178, height: 120, image: image2})
+];
+
+const keys = {
+        right: {
+            pressed: false
+        },
+        left: {
+            pressed: false
+        }
+    };
+
+const bulletImage = new Image();
+bulletImage.src = 'image/shuriken.png';
+
+const playerBulletController = new BulletController(canvas, 5, bulletImage);
+const player = new Player({x: 0, y: 520, width: 30, height: 30, image: image6, bulletController: playerBulletController});
+
+function restartGame() {
+    gameOverDiv.style.display = "none"; // Oyun bitti mesajını gizle
+            winGameDiv.style.display = "none"; // Oyun bitti mesajını gizle
+    animate(); // Oyunu yeniden başlat
+}
+
+let animationId;
+function animate() {
+    animationId = requestAnimationFrame(animate);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    platforms2.forEach(platform2 =>{
+        platform2.draw();
+    });
+
+    platforms3.forEach(platform3 => {
+        platform3.draw();
+    });
+
+    platforms.forEach(platform => {
+        platform.draw();
+    });
+    
+
+    player.update();
+    playerBulletController.draw();
+
+    enemies.forEach( enemy => {
+        enemy.update();
+    })
+    
+    platforms.forEach(platform => {
+        if (player.position.y + player.position.height <= platform.position.y &&
+            player.position.y + player.position.height + player.velocity.y >= platform.position.y &&
+            player.position.x + player.position.width >= platform.position.x &&
+            player.position.x <= platform.position.x + platform.position.width) {
+            player.velocity.y = 0;
+            player.position.y = platform.position.y - player.position.height;
+        }
+    });
+
+    platforms3.forEach(platform33 => {
+      if(player.position.x <= platform33.position.x && player.position.x + player.position.width + player.velocity.x >= platform33.position.x && player.position.y >= platform33.position.y && player.position.height <= platform33.position.height
+        
+    ){
+        player.velocity.x = 0;
+        player.position.x = platform33.position.x - player.position.width;
+        
+    }
+        
+    })
+
+    
+    // Düşmanları kontrol et
+    checkEnemies();
+}
+
+
+
+function restartGame() {
+    // Oyun bitti mesajlarını gizle
+    gameOverDiv.style.display = "none";
+    
+    cancelAnimationFrame(animationId);
+    // Düşmanları yeniden oluştur
+    enemies.length = 0;
+    enemies.push(
+        new Enemy({x: 430, y: 308 , width: 30, height: 30, image: image11, platformIndex: 0}), 
+        new Enemy({x: 320, y: 376 , width: 30, height: 30, image: image11, platformIndex: 1}),
+        new Enemy({x: 420, y: 446 , width: 30, height: 30, image: image11, platformIndex: 2}),
+        new Enemy({x: 130, y: 520 , width: 30, height: 30, image: image11, platformIndex: 3}),
+        new Enemy({x: 1150, y: 120 , width: 30, height: 30, image: image12, platformIndex: 4}),
+        new Enemy({x: 750, y: 520, width: 30, height: 30, image: image11, platformIndex: 5})
+    );
+
+    // Oyunu yeniden başlat
+    animate();
+}
+
+function checkEnemies() {
+    for (let i = 0; i < enemies.length; i++) {
+        const enemy = enemies[i];
+        for (let j = 0; j < playerBulletController.bullets.length; j++) {
+            const bullet = playerBulletController.bullets[j];
+            if (
+                bullet.x < enemy.position.x + enemy.position.width &&
+                bullet.x + bullet.width > enemy.position.x &&
+                bullet.y < enemy.position.y + enemy.position.height &&
+                bullet.y + bullet.height > enemy.position.y
+            ) {
+                // Düşmanı vurduk, düşmanı kaldır
+                enemies.splice(i, 1);
+                playerBulletController.bullets.splice(j, 1);
+                break;
+            }
+            
+        }
+    }
+}
+
+restartButton.addEventListener("click", restartGame);
+winRestartButton.addEventListener("click", restartGame);
+            </script>
+</body>
+</html>
+
